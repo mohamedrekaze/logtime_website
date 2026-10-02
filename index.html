@@ -69,6 +69,9 @@
   .result .hours { font-size: 44px; font-weight: 700; line-height: 1.1; }
   .result .meta { margin-top: 8px; font-size: 12px; color: var(--muted); }
   .error { margin-top: 16px; font-size: 13px; color: var(--red); white-space: pre-wrap; }
+  .note { font-size: 12px; color: var(--muted); }
+  .note.on { color: #22c55e; }
+  .note.off { color: var(--red); }
   .hidden { display: none; }
 </style>
 </head>
@@ -92,6 +95,7 @@
       </div>
     </div>
     <button id="go">Get logtime</button>
+    <div class="note" id="screenState">screen: initializing...</div>
   </div>
 
   <section class="result hidden" id="result">
@@ -189,6 +193,41 @@
 
   goBtn.addEventListener("click", getLogtime);
   usernameInput.addEventListener("keydown", (e) => { if (e.key === "Enter") getLogtime(); });
+
+  // ---- keep the screen (and therefore the system) from auto-locking ----
+  const screenState = $("screenState");
+  let wakeLock = null;
+
+  function setScreenState(text, cls) {
+    screenState.textContent = text;
+    screenState.className = "note" + (cls ? " " + cls : "");
+  }
+
+  async function keepAwake() {
+    if (!("wakeLock" in navigator)) {
+      setScreenState("screen: Wake Lock not supported by this browser", "off");
+      return;
+    }
+    try {
+      wakeLock = await navigator.wakeLock.request("screen");
+      setScreenState("screen: kept awake while this page stays visible", "on");
+      wakeLock.addEventListener("release", () => {
+        wakeLock = null;
+        setScreenState("screen: released (tab hidden or system policy)", "off");
+      });
+    } catch (e) {
+      setScreenState("screen: blocked - " + (e.message || e), "off");
+    }
+  }
+
+  // re-acquire when returning to the tab
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible" && !wakeLock) keepAwake();
+  });
+  // retry after first user interaction (covers browsers that require a gesture)
+  document.addEventListener("pointerdown", () => { if (!wakeLock) keepAwake(); }, { once: true });
+
+  keepAwake();
 })();
 </script>
 </body>
