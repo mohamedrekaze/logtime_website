@@ -6,6 +6,7 @@
 <title>1337 LogTime Counter</title>
 <style>
   :root {
+    color-scheme: dark;
     --border: #1c2637;
     --text: #e6ecf5;
     --muted: #8a94a6;
@@ -202,6 +203,16 @@
   }
   fromInput.addEventListener("change", syncDateTexts);
   toInput.addEventListener("change", syncDateTexts);
+
+  // Open the calendar from anywhere in the date box, not just the small icon.
+  [fromInput, toInput].forEach((input) => {
+    input.addEventListener("click", (e) => {
+      if (typeof input.showPicker !== "function") return;
+      e.preventDefault();
+      input.focus({ preventScroll: true });
+      try { input.showPicker(); } catch (_) { /* picker already open */ }
+    });
+  });
 
   function showError(message) {
     errorEl.textContent = message;
