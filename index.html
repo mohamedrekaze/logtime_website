@@ -18,9 +18,7 @@
     margin: 0;
     min-height: 100vh;
     padding: 36px 20px 26px;
-    background:
-      radial-gradient(560px 340px at 50% 46%, rgba(37, 99, 235, .22), rgba(37, 99, 235, .05) 45%, transparent 72%),
-      #000;
+    background: #000;
     color: var(--text);
     font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     display: grid;
@@ -34,9 +32,9 @@
   .field { display: flex; flex-direction: column; gap: 7px; }
   .field label { font-size: 11px; font-weight: 500; color: var(--muted); }
 
-  select,
   input,
-  .datebox {
+  .datebox,
+  .selectbox {
     height: 36px;
     font: inherit;
     font-size: 13px;
@@ -45,24 +43,24 @@
     border: 1px solid var(--border);
     border-radius: 7px;
   }
-  select:focus, input:focus, .datebox:focus-within { outline: 1px solid var(--accent); }
-  select {
+  input:focus, .datebox:focus-within { outline: 1px solid var(--accent); }
+  .selectbox {
+    position: relative;
+    display: flex;
+    align-items: center;
     width: 134px;
     padding: 0 28px 0 10px;
     cursor: pointer;
-    appearance: none;
-    -webkit-appearance: none;
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="%238a94a6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>');
-    background-repeat: no-repeat;
-    background-position: right 9px center;
   }
+  .selectbox span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .selectbox .chev { position: absolute; right: 10px; width: 12px; height: 12px; color: var(--muted); pointer-events: none; }
   input { padding: 0 10px; }
 
   .datebox { position: relative; display: flex; align-items: center; gap: 9px; width: 202px; padding: 0 10px; cursor: pointer; }
   .datebox .cal { width: 14px; height: 14px; flex: none; color: #7d8b9c; }
   .datebox span { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .datebox input { position: absolute; inset: 0; width: 100%; height: 100%; padding: 0; opacity: 0; pointer-events: none; }
-  .datebox.open { outline: 1px solid var(--accent); }
+  .datebox.open, .selectbox.open { outline: 1px solid var(--accent); }
 
   .calendar {
     position: absolute;
@@ -111,6 +109,33 @@
   .cal-day.today { box-shadow: inset 0 0 0 1px rgba(59, 130, 246, .55); }
   .cal-day.sel { background: var(--accent); color: #fff; font-weight: 600; }
 
+  .menu {
+    width: 100%;
+    max-height: 290px;
+    padding: 6px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #2f3b52 transparent;
+  }
+  .menu::-webkit-scrollbar { width: 8px; }
+  .menu::-webkit-scrollbar-thumb { background: #2f3b52; border-radius: 4px; }
+  .menu::-webkit-scrollbar-track { background: transparent; }
+  .menu-item {
+    display: block;
+    width: 100%;
+    padding: 7px 9px;
+    font: inherit;
+    font-size: 12px;
+    text-align: left;
+    color: var(--text);
+    background: transparent;
+    border: 0;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  .menu-item:hover { background: rgba(255, 255, 255, .07); }
+  .menu-item.sel { background: var(--accent); color: #fff; font-weight: 600; }
+
   main { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
   .number { font-size: clamp(64px, 11vw, 104px); font-weight: 800; line-height: 1; letter-spacing: -1px; }
   .unit { margin-top: 8px; font-size: 13px; color: #9aa4b2; }
@@ -150,7 +175,12 @@
     <div class="controls">
       <div class="field">
         <label for="period">Period</label>
-        <select id="period"></select>
+        <div class="selectbox" id="periodBox">
+          <span id="periodText">--</span>
+          <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          <select id="period" class="hidden"></select>
+          <div class="calendar menu hidden" id="periodMenu"></div>
+        </div>
       </div>
       <div class="field">
         <label for="from">From</label>
@@ -244,6 +274,49 @@
     const parts = periodSel.value.split("-");
     applyPeriod(Number(parts[0]), Number(parts[1]) - 1);
   });
+
+  // Themed period dropdown: the hidden <select> stays the value store.
+  const periodBox = $("periodBox");
+  const periodText = $("periodText");
+  const periodMenu = $("periodMenu");
+
+  function closePeriodMenu() {
+    periodMenu.classList.add("hidden");
+    periodBox.classList.remove("open");
+  }
+
+  function syncPeriodText() {
+    const opt = periodSel.options[periodSel.selectedIndex];
+    periodText.textContent = opt ? opt.textContent : "--";
+  }
+
+  periodBox.addEventListener("click", (e) => {
+    if (periodMenu.contains(e.target)) return;
+    if (!periodMenu.classList.contains("hidden")) return closePeriodMenu();
+
+    periodMenu.textContent = "";
+    for (const opt of periodSel.options) {
+      const item = document.createElement("button");
+      item.type = "button";
+      item.className = "menu-item" + (opt.value === periodSel.value ? " sel" : "");
+      item.textContent = opt.textContent;
+      item.addEventListener("click", () => {
+        periodSel.value = opt.value;
+        syncPeriodText();
+        periodSel.dispatchEvent(new Event("change"));
+        closePeriodMenu();
+      });
+      periodMenu.appendChild(item);
+    }
+    periodMenu.classList.remove("hidden");
+    periodBox.classList.add("open");
+    const selected = periodMenu.querySelector(".sel");
+    if (selected) periodMenu.scrollTop = Math.max(0, selected.offsetTop - 8);
+  });
+
+  document.addEventListener("click", (e) => { if (!periodBox.contains(e.target)) closePeriodMenu(); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") closePeriodMenu(); });
+  syncPeriodText();
 
   function syncDateTexts() {
     if (fromInput.value) fromText.textContent = displayDate(new Date(fromInput.value + "T00:00:00"));
