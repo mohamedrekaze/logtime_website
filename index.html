@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Logtime</title>
+<style>
+  :root {
+    --bg: #0f1419;
+    --panel: #161c24;
+    --border: #232b36;
+    --text: #e6edf3;
+    --muted: #7d8b9c;
+    --accent: #a855f7;
+    --red: #f85149;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: ui-monospace, Menlo, Consolas, monospace;
+  }
+  .card {
+    width: 100%;
+    max-width: 520px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px;
+  }
+  h1 { margin: 0 0 22px; font-size: 16px; letter-spacing: 3px; color: var(--accent); }
+  label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+  }
+  input, button {
+    width: 100%;
+    padding: 10px 12px;
+    font: inherit;
+    font-size: 15px;
+    color: var(--text);
+    background: #0e1319;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+  input:focus { outline: 1px solid var(--accent); }
+  .fields { display: flex; flex-direction: column; gap: 16px; }
+  .row { display: flex; gap: 12px; }
+  .row > div { flex: 1; }
+  button {
+    cursor: pointer;
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+    font-weight: 600;
+  }
+  button:disabled { opacity: .5; cursor: wait; }
+  .result { margin-top: 26px; border-top: 1px solid var(--border); padding-top: 22px; }
+  .result .hours { font-size: 44px; font-weight: 700; line-height: 1.1; }
+  .result .meta { margin-top: 8px; font-size: 12px; color: var(--muted); }
+  .error { margin-top: 16px; font-size: 13px; color: var(--red); white-space: pre-wrap; }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+<main class="card">
+  <h1>LOGTIME</h1>
+
+  <div class="fields">
+    <div>
+      <label for="username">Username</label>
+      <input id="username" placeholder="42 login" autocomplete="off" spellcheck="false" />
+    </div>
+    <div class="row">
+      <div>
+        <label for="start">From</label>
+        <input id="start" type="date" />
+      </div>
+      <div>
+        <label for="end">To</label>
+        <input id="end" type="date" />
+      </div>
+    </div>
+    <button id="go">Get logtime</button>
+  </div>
+
+  <section class="result hidden" id="result">
+    <div class="hours" id="hours">--</div>
+    <div class="meta" id="meta"></div>
+  </section>
+
+  <div class="error hidden" id="error"></div>
+</main>
+
+<script>
+(() => {
+  "use strict";
+
+  const $ = (id) => document.getElementById(id);
+  const usernameInput = $("username");
+  const startInput = $("start");
+  const endInput = $("end");
+  const goBtn = $("go");
+  const result = $("result");
+  const hoursEl = $("hours");
+  const metaEl = $("meta");
+  const errorEl = $("error");
+
+  const toISO = (d) => d.toISOString().slice(0, 10);
+
+  function defaultPeriod() {
+    const now = new Date();
+    const y = now.getFullYear(), m = now.getMonth(), day = now.getDate();
+    if (day >= 28) return { start: new Date(y, m, 28), end: new Date(y, m + 1, 27) };
+    return { start: new Date(y, m - 1, 28), end: new Date(y, m, 27) };
+  }
+
+  // defaults: current 42 period (28th -> 27th)
+  const period = defaultPeriod();
+  startInput.value = toISO(period.start);
+  endInput.value = toISO(period.end);
+  usernameInput.value = localStorage.getItem("logtime.username") || "";
+
+  function fmtHours(h) {
+    const totalMinutes = Math.round(Math.max(0, h) * 60);
+    return `${Math.floor(totalMinutes / 60)}h ${String(totalMinutes % 60).padStart(2, "0")}m`;
+  }
+
+  function showError(message) {
+    errorEl.textContent = message;
+    errorEl.classList.remove("hidden");
+  }
+
+  async function getLogtime() {
+    const login = usernameInput.value.trim();
+    const start = startInput.value;
+    const end = endInput.value;
+
+    errorEl.classList.add("hidden");
+    result.classList.add("hidden");
+
+    if (!login) return showError("Enter a username.");
+    if (!start || !end) return showError("Pick a start and end date.");
+    if (start > end) return showError("Start date must be before end date.");
+
+    localStorage.setItem("logtime.username", login);
+    goBtn.disabled = true;
+    goBtn.textContent = "Loading...";
+
+    try {
+      const res = await fetch("/api/get_log", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          login,
+          startDate: `${start}T00:00:00.000Z`,
+          endDate: `${end}T23:59:59.999Z`
+        })
+      });
+
+      let data = null;
+      try { data = await res.json(); } catch (_) {}
+      if (!res.ok) throw new Error((data && data.error) || `HTTP ${res.status}`);
+
+      const members = (data && data["hydra:member"]) || [];
+      if (!members.length) throw new Error("No logtime found for this user.");
+
+      const hours = Math.max(0, Number(members[0].totalHours) || 0);
+      hoursEl.textContent = fmtHours(hours);
+      metaEl.textContent = `${hours} hours \u00b7 ${start} \u2192 ${end} \u00b7 user: ${login}`;
+      result.classList.remove("hidden");
+    } catch (e) {
+      showError(String(e.message || e));
+    } finally {
+      goBtn.disabled = false;
+      goBtn.textContent = "Get logtime";
+    }
+  }
+
+  goBtn.addEventListener("click", getLogtime);
+  usernameInput.addEventListener("keydown", (e) => { if (e.key === "Enter") getLogtime(); });
+})();
+</script>
+</body>
+</html>
