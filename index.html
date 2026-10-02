@@ -22,12 +22,9 @@
     color: var(--text);
     font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     display: grid;
-    grid-template-rows: auto 1fr auto;
+    grid-template-rows: 1fr auto;
     gap: 20px;
   }
-  header { display: flex; flex-direction: column; align-items: center; gap: 24px; }
-  h1 { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: .2px; }
-
   .controls { display: flex; gap: 8px; align-items: flex-end; }
   .field { display: flex; flex-direction: column; gap: 7px; }
   .field label { font-size: 11px; font-weight: 500; color: var(--muted); }
@@ -137,7 +134,7 @@
   .menu-item.sel { background: var(--accent); color: #fff; font-weight: 600; }
 
   main { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
-  .number { font-size: clamp(64px, 11vw, 104px); font-weight: 800; line-height: 1; letter-spacing: -1px; }
+  .number { font-size: clamp(80px, 13.75vw, 130px); font-weight: 800; line-height: 1; letter-spacing: -1px; }
   .unit { margin-top: 8px; font-size: 13px; color: #9aa4b2; }
   .error { margin-top: 18px; font-size: 13px; color: var(--danger); max-width: 480px; white-space: pre-wrap; }
 
@@ -169,9 +166,13 @@
 </style>
 </head>
 <body>
-  <header>
-    <h1>1337 LogTime Counter</h1>
+  <main>
+    <div class="number" id="hours">--</div>
+    <div class="unit">hours</div>
+    <div class="error hidden" id="error"></div>
+  </main>
 
+  <footer>
     <div class="controls">
       <div class="field">
         <label for="period">Period</label>
@@ -199,15 +200,7 @@
         </div>
       </div>
     </div>
-  </header>
 
-  <main>
-    <div class="number" id="hours">--</div>
-    <div class="unit">hours</div>
-    <div class="error hidden" id="error"></div>
-  </main>
-
-  <footer>
     <div class="calc">
       <input id="username" placeholder="mohamed" autocomplete="off" spellcheck="false" />
       <button id="calc">Calculate</button>
