@@ -3,163 +3,229 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Logtime</title>
+<title>1337 LogTime Counter</title>
 <style>
   :root {
-    --bg: #0f1419;
-    --panel: #161c24;
-    --border: #232b36;
-    --text: #e6edf3;
-    --muted: #7d8b9c;
-    --accent: #a855f7;
-    --red: #f85149;
+    --border: #1c2637;
+    --text: #e6ecf5;
+    --muted: #8a94a6;
+    --accent: #3b82f6;
+    --danger: #f87171;
   }
   * { box-sizing: border-box; }
   body {
     margin: 0;
     min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 24px;
-    background: var(--bg);
+    padding: 36px 20px 26px;
+    background:
+      radial-gradient(560px 340px at 50% 46%, rgba(37, 99, 235, .22), rgba(37, 99, 235, .05) 45%, transparent 72%),
+      radial-gradient(1200px 700px at 50% 50%, #070d18, #020409 78%);
     color: var(--text);
-    font-family: ui-monospace, Menlo, Consolas, monospace;
+    font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    gap: 20px;
   }
-  .card {
-    width: 100%;
-    max-width: 520px;
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 28px;
-  }
-  h1 { margin: 0 0 22px; font-size: 16px; letter-spacing: 3px; color: var(--accent); }
-  label {
-    display: block;
-    margin-bottom: 6px;
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    color: var(--muted);
-  }
-  input, button {
-    width: 100%;
-    padding: 10px 12px;
+  header { display: flex; flex-direction: column; align-items: center; gap: 24px; }
+  h1 { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: .2px; }
+
+  .controls { display: flex; gap: 8px; align-items: flex-end; }
+  .field { display: flex; flex-direction: column; gap: 7px; }
+  .field label { font-size: 11px; font-weight: 500; color: var(--muted); }
+
+  select,
+  input,
+  .datebox {
+    height: 36px;
     font: inherit;
-    font-size: 15px;
+    font-size: 13px;
     color: var(--text);
-    background: #0e1319;
+    background: rgba(11, 18, 32, .9);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 7px;
   }
-  input:focus { outline: 1px solid var(--accent); }
-  .fields { display: flex; flex-direction: column; gap: 16px; }
-  .row { display: flex; gap: 12px; }
-  .row > div { flex: 1; }
-  button {
+  select:focus, input:focus, .datebox:focus-within { outline: 1px solid var(--accent); }
+  select {
+    width: 134px;
+    padding: 0 28px 0 10px;
     cursor: pointer;
-    background: var(--accent);
-    border-color: var(--accent);
-    color: #fff;
-    font-weight: 600;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="%238a94a6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>');
+    background-repeat: no-repeat;
+    background-position: right 9px center;
   }
-  button:disabled { opacity: .5; cursor: wait; }
-  .result { margin-top: 26px; border-top: 1px solid var(--border); padding-top: 22px; }
-  .result .hours { font-size: 44px; font-weight: 700; line-height: 1.1; }
-  .result .meta { margin-top: 8px; font-size: 12px; color: var(--muted); }
-  .error { margin-top: 16px; font-size: 13px; color: var(--red); white-space: pre-wrap; }
-  .note { font-size: 12px; color: var(--muted); }
-  .note.on { color: #22c55e; }
-  .note.off { color: var(--red); }
+  input { padding: 0 10px; }
+
+  .datebox { position: relative; display: flex; align-items: center; gap: 9px; width: 202px; padding: 0 10px; cursor: pointer; }
+  .datebox .cal { width: 14px; height: 14px; flex: none; color: #7d8b9c; }
+  .datebox span { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .datebox input { position: absolute; inset: 0; width: 100%; height: 100%; padding: 0; opacity: 0; cursor: pointer; }
+
+  main { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+  .number { font-size: clamp(64px, 11vw, 104px); font-weight: 800; line-height: 1; letter-spacing: -1px; }
+  .unit { margin-top: 8px; font-size: 13px; color: #9aa4b2; }
+  .error { margin-top: 18px; font-size: 13px; color: var(--danger); max-width: 480px; white-space: pre-wrap; }
+
+  footer { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .calc { display: flex; gap: 10px; }
+  #username { width: 170px; }
+  #calc {
+    height: 36px;
+    padding: 0 18px;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    color: #fff;
+    background: var(--accent);
+    border: 0;
+    border-radius: 7px;
+    cursor: pointer;
+  }
+  #calc:disabled { opacity: .6; cursor: wait; }
+  .credit { font-size: 12px; color: var(--muted); }
+  .credit a { color: #a78bfa; text-decoration: none; }
+  .credit a:hover { text-decoration: underline; }
+  .note { font-size: 11px; color: var(--danger); }
   .hidden { display: none; }
+
+  @media (max-width: 640px) {
+    .controls { flex-wrap: wrap; justify-content: center; }
+  }
 </style>
 </head>
 <body>
-<main class="card">
-  <h1>LOGTIME</h1>
+  <header>
+    <h1>1337 LogTime Counter</h1>
 
-  <div class="fields">
-    <div>
-      <label for="username">Username</label>
-      <input id="username" placeholder="42 login" autocomplete="off" spellcheck="false" />
-    </div>
-    <div class="row">
-      <div>
-        <label for="start">From</label>
-        <input id="start" type="date" />
+    <div class="controls">
+      <div class="field">
+        <label for="period">Period</label>
+        <select id="period"></select>
       </div>
-      <div>
-        <label for="end">To</label>
-        <input id="end" type="date" />
+      <div class="field">
+        <label for="from">From</label>
+        <div class="datebox">
+          <svg class="cal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          <span id="fromText">--</span>
+          <input type="date" id="from" />
+        </div>
+      </div>
+      <div class="field">
+        <label for="to">To</label>
+        <div class="datebox">
+          <svg class="cal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          <span id="toText">--</span>
+          <input type="date" id="to" />
+        </div>
       </div>
     </div>
-    <button id="go">Get logtime</button>
-    <div class="note" id="screenState">screen: initializing...</div>
-  </div>
+  </header>
 
-  <section class="result hidden" id="result">
-    <div class="hours" id="hours">--</div>
-    <div class="meta" id="meta"></div>
-  </section>
+  <main>
+    <div class="number" id="hours">--</div>
+    <div class="unit">hours</div>
+    <div class="error hidden" id="error"></div>
+  </main>
 
-  <div class="error hidden" id="error"></div>
-</main>
+  <footer>
+    <div class="calc">
+      <input id="username" placeholder="mohamed" autocomplete="off" spellcheck="false" />
+      <button id="calc">Calculate</button>
+    </div>
+    <div class="credit">Created by <a href="https://github.com/mohamedrekaze" target="_blank" rel="noreferrer">mohamedrekaze</a></div>
+    <div class="note hidden" id="screenNote"></div>
+  </footer>
 
 <script>
 (() => {
   "use strict";
 
   const $ = (id) => document.getElementById(id);
-  const usernameInput = $("username");
-  const startInput = $("start");
-  const endInput = $("end");
-  const goBtn = $("go");
-  const result = $("result");
+  const periodSel = $("period");
+  const fromInput = $("from");
+  const toInput = $("to");
+  const fromText = $("fromText");
+  const toText = $("toText");
   const hoursEl = $("hours");
-  const metaEl = $("meta");
   const errorEl = $("error");
+  const usernameInput = $("username");
+  const calcBtn = $("calc");
+  const screenNote = $("screenNote");
 
-  const toISO = (d) => d.toISOString().slice(0, 10);
+  const MONTHS = ["January", "February", "March", "April", "May", "June",
+                  "July", "August", "September", "October", "November", "December"];
+  const pad = (n) => String(n).padStart(2, "0");
+  const toISO = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const ordinal = (n) => {
+    const s = ["th", "st", "nd", "rd"], v = n % 100;
+    return n + (s[(v - 20) % 10] || s[v] || s[0]);
+  };
+  const displayDate = (d) => `${MONTHS[d.getMonth()]} ${ordinal(d.getDate())}, ${d.getFullYear()}`;
 
-  function defaultPeriod() {
-    const now = new Date();
-    const y = now.getFullYear(), m = now.getMonth(), day = now.getDate();
-    if (day >= 28) return { start: new Date(y, m, 28), end: new Date(y, m + 1, 27) };
-    return { start: new Date(y, m - 1, 28), end: new Date(y, m, 27) };
+  function periodLabel(ref) {
+    let y = ref.getFullYear(), m = ref.getMonth();
+    if (ref.getDate() >= 28) { m += 1; if (m > 11) { m = 0; y += 1; } }
+    return { y, m };
   }
 
-  // defaults: current 42 period (28th -> 27th)
-  const period = defaultPeriod();
-  startInput.value = toISO(period.start);
-  endInput.value = toISO(period.end);
-  usernameInput.value = localStorage.getItem("logtime.username") || "";
-
-  function fmtHours(h) {
-    const totalMinutes = Math.round(Math.max(0, h) * 60);
-    return `${Math.floor(totalMinutes / 60)}h ${String(totalMinutes % 60).padStart(2, "0")}m`;
+  // A period labelled month `m` runs from the 28th of the previous month
+  // through the 27th of month `m` (e.g. October = Sept 28 -> Oct 27).
+  function applyPeriod(y, m) {
+    const start = new Date(y, m - 1, 28);
+    const end = new Date(y, m, 27);
+    fromInput.value = toISO(start);
+    toInput.value = toISO(end);
+    fromText.textContent = displayDate(start);
+    toText.textContent = displayDate(end);
   }
+
+  const label = periodLabel(new Date());
+  for (let i = -6; i <= 6; i++) {
+    const d = new Date(label.y, label.m + i, 1);
+    const opt = document.createElement("option");
+    opt.value = `${d.getFullYear()}-${pad(d.getMonth() + 1)}`;
+    opt.textContent = MONTHS[d.getMonth()];
+    periodSel.appendChild(opt);
+  }
+  periodSel.value = `${label.y}-${pad(label.m + 1)}`;
+  applyPeriod(label.y, label.m);
+
+  periodSel.addEventListener("change", () => {
+    const parts = periodSel.value.split("-");
+    applyPeriod(Number(parts[0]), Number(parts[1]) - 1);
+  });
+
+  function syncDateTexts() {
+    if (fromInput.value) fromText.textContent = displayDate(new Date(fromInput.value + "T00:00:00"));
+    if (toInput.value) toText.textContent = displayDate(new Date(toInput.value + "T00:00:00"));
+  }
+  fromInput.addEventListener("change", syncDateTexts);
+  toInput.addEventListener("change", syncDateTexts);
 
   function showError(message) {
     errorEl.textContent = message;
     errorEl.classList.remove("hidden");
   }
 
-  async function getLogtime() {
+  function formatHours(h) {
+    const n = Math.max(0, Number(h) || 0);
+    return Number.isInteger(n) ? String(n) : n.toFixed(1);
+  }
+
+  async function calculate() {
     const login = usernameInput.value.trim();
-    const start = startInput.value;
-    const end = endInput.value;
+    const start = fromInput.value;
+    const end = toInput.value;
 
     errorEl.classList.add("hidden");
-    result.classList.add("hidden");
-
     if (!login) return showError("Enter a username.");
     if (!start || !end) return showError("Pick a start and end date.");
     if (start > end) return showError("Start date must be before end date.");
 
     localStorage.setItem("logtime.username", login);
-    goBtn.disabled = true;
-    goBtn.textContent = "Loading...";
+    calcBtn.disabled = true;
+    calcBtn.textContent = "Calculating...";
 
     try {
       const res = await fetch("/api/get_log", {
@@ -179,55 +245,44 @@
       const members = (data && data["hydra:member"]) || [];
       if (!members.length) throw new Error("No logtime found for this user.");
 
-      const hours = Math.max(0, Number(members[0].totalHours) || 0);
-      hoursEl.textContent = fmtHours(hours);
-      metaEl.textContent = `${hours} hours \u00b7 ${start} \u2192 ${end} \u00b7 user: ${login}`;
-      result.classList.remove("hidden");
+      hoursEl.textContent = formatHours(members[0].totalHours);
     } catch (e) {
       showError(String(e.message || e));
     } finally {
-      goBtn.disabled = false;
-      goBtn.textContent = "Get logtime";
+      calcBtn.disabled = false;
+      calcBtn.textContent = "Calculate";
     }
   }
 
-  goBtn.addEventListener("click", getLogtime);
-  usernameInput.addEventListener("keydown", (e) => { if (e.key === "Enter") getLogtime(); });
+  calcBtn.addEventListener("click", calculate);
+  usernameInput.addEventListener("keydown", (e) => { if (e.key === "Enter") calculate(); });
 
-  // ---- keep the screen (and therefore the system) from auto-locking ----
-  const screenState = $("screenState");
   let wakeLock = null;
-
-  function setScreenState(text, cls) {
-    screenState.textContent = text;
-    screenState.className = "note" + (cls ? " " + cls : "");
-  }
 
   async function keepAwake() {
     if (!("wakeLock" in navigator)) {
-      setScreenState("screen: Wake Lock not supported by this browser", "off");
+      screenNote.textContent = "screen sleep not blocked: browser has no Wake Lock support";
+      screenNote.classList.remove("hidden");
       return;
     }
     try {
       wakeLock = await navigator.wakeLock.request("screen");
-      setScreenState("screen: kept awake while this page stays visible", "on");
-      wakeLock.addEventListener("release", () => {
-        wakeLock = null;
-        setScreenState("screen: released (tab hidden or system policy)", "off");
-      });
+      screenNote.classList.add("hidden");
+      wakeLock.addEventListener("release", () => { wakeLock = null; });
     } catch (e) {
-      setScreenState("screen: blocked - " + (e.message || e), "off");
+      screenNote.textContent = "screen sleep not blocked: " + (e.message || e);
+      screenNote.classList.remove("hidden");
     }
   }
 
-  // re-acquire when returning to the tab
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible" && !wakeLock) keepAwake();
   });
-  // retry after first user interaction (covers browsers that require a gesture)
   document.addEventListener("pointerdown", () => { if (!wakeLock) keepAwake(); }, { once: true });
-
   keepAwake();
+
+  usernameInput.value = localStorage.getItem("logtime.username") || "";
+  if (usernameInput.value) calculate();
 })();
 </script>
 </body>
