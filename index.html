@@ -203,7 +203,8 @@
     </div>
 
     <div class="calc">
-      <input id="username" placeholder="mohamed" autocomplete="off" spellcheck="false" />
+      <input id="username" autocomplete="off" spellcheck="false" list="usernames" />
+      <datalist id="usernames"></datalist>
       <button id="calc">Calculate</button>
     </div>
     <div class="credit">Created by <a href="https://github.com/mohamedrekaze" target="_blank" rel="noreferrer">mohamedrekaze</a></div>
@@ -223,6 +224,7 @@
   const hoursEl = $("hours");
   const errorEl = $("error");
   const usernameInput = $("username");
+  const usernamesList = $("usernames");
   const calcBtn = $("calc");
   const screenNote = $("screenNote");
 
@@ -421,6 +423,32 @@
     return Number.isInteger(n) ? String(n) : n.toFixed(1);
   }
 
+  const USERS_KEY = "logtime.usernames";
+
+  function knownUsers() {
+    try {
+      const list = JSON.parse(localStorage.getItem(USERS_KEY) || "[]");
+      return Array.isArray(list) ? list.filter((u) => typeof u === "string" && u) : [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  function renderUsernames(list = knownUsers()) {
+    usernamesList.textContent = "";
+    for (const login of list) {
+      const opt = document.createElement("option");
+      opt.value = login;
+      usernamesList.appendChild(opt);
+    }
+  }
+
+  function rememberUser(login) {
+    const list = [login, ...knownUsers().filter((u) => u !== login)].slice(0, 5);
+    localStorage.setItem(USERS_KEY, JSON.stringify(list));
+    renderUsernames(list);
+  }
+
   const API_URL = "https://logtime-med.1337.ma/api/get_log";
 
   function callApi(payload) {
@@ -463,6 +491,7 @@
       if (!members.length) throw new Error("No logtime found for this user.");
 
       hoursEl.textContent = formatHours(members[0].totalHours);
+      rememberUser(login);
     } catch (e) {
       showError(String(e.message || e));
     } finally {
@@ -499,6 +528,7 @@
   keepAwake();
 
   usernameInput.value = localStorage.getItem("logtime.username") || "";
+  renderUsernames();
   if (usernameInput.value) calculate();
 })();
 </script>
