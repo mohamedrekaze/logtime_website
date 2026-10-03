@@ -159,6 +159,24 @@
   .credit a { color: #a78bfa; text-decoration: none; }
   .credit a:hover { text-decoration: underline; }
   .note { font-size: 11px; color: var(--danger); }
+
+  .media { display: flex; gap: 8px; }
+  .ghost {
+    height: 30px;
+    padding: 0 12px;
+    font: inherit;
+    font-size: 12px;
+    color: var(--muted);
+    background: rgba(11, 18, 32, .9);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    cursor: pointer;
+  }
+  .ghost:hover { color: var(--text); border-color: #2b3a55; }
+
+  .media-layer { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
+  .media-layer img,
+  .media-layer video { width: 100%; height: 100%; object-fit: cover; opacity: .35; }
   .hidden { display: none; }
 
   @media (max-width: 640px) {
@@ -167,6 +185,7 @@
 </style>
 </head>
 <body>
+  <div class="media-layer hidden" id="mediaLayer" aria-hidden="true"></div>
   <main>
     <div class="number" id="hours">--</div>
     <div class="unit">hours</div>
@@ -207,6 +226,11 @@
       <datalist id="usernames"></datalist>
       <button id="calc">Calculate</button>
     </div>
+    <div class="media">
+      <input type="file" id="mediaFile" accept="image/*,video/*" class="hidden" />
+      <button type="button" class="ghost" id="mediaPick">Add GIF / video</button>
+      <button type="button" class="ghost hidden" id="mediaClear">Remove</button>
+    </div>
     <div class="credit">Created by <a href="https://github.com/mohamedrekaze" target="_blank" rel="noreferrer">mohamedrekaze</a></div>
     <div class="note hidden" id="screenNote"></div>
   </footer>
@@ -227,6 +251,10 @@
   const usernamesList = $("usernames");
   const calcBtn = $("calc");
   const screenNote = $("screenNote");
+  const mediaLayer = $("mediaLayer");
+  const mediaFile = $("mediaFile");
+  const mediaPick = $("mediaPick");
+  const mediaClear = $("mediaClear");
 
   const MONTHS = ["January", "February", "March", "April", "May", "June",
                   "July", "August", "September", "October", "November", "December"];
@@ -526,6 +554,86 @@
   });
   document.addEventListener("pointerdown", () => { if (!wakeLock) keepAwake(); }, { once: true });
   keepAwake();
+
+  const MEDIA_DB = "logtime-media";
+  const MEDIA_TYPE = "display";
+
+  function mediaDb() {
+    return new Promise((resolve, reject) => {
+      const open = indexedDB.open(MEDIA_DB, 1);
+      open.onupgradeneeded = () => open.result.createObjectStore("files");
+      open.onsuccess = () => resolve(open.result);
+      open.onerror = () => reject(open.error);
+    });
+  }
+
+  function mediaStore(mode, run) {
+    return mediaDb().then((db) => new Promise((resolve, reject) => {
+      const tx = db.transaction("files", mode);
+      const request = run(tx.objectStore("files"));
+      tx.oncomplete = () => resolve(request ? request.result : undefined);
+      tx.onerror = () => reject(tx.error);
+    }));
+  }
+
+  let mediaUrl = null;
+
+  function showMedia(blob) {
+    if (mediaUrl) URL.revokeObjectURL(mediaUrl);
+    mediaUrl = URL.createObjectURL(blob);
+
+    const video = blob.type.startsWith("video/");
+    const el = document.createElement(video ? "video" : "img");
+    if (video) {
+      el.muted = true;
+      el.autoplay = true;
+      el.loop = true;
+      el.playsInline = true;
+    }
+    el.src = mediaUrl;
+
+    mediaLayer.textContent = "";
+    mediaLayer.appendChild(el);
+    mediaLayer.classList.remove("hidden");
+    mediaClear.classList.remove("hidden");
+    if (video && el.play) el.play().catch(() => {});
+  }
+
+  function clearMedia() {
+    mediaLayer.textContent = "";
+    mediaLayer.classList.add("hidden");
+    mediaClear.classList.add("hidden");
+    if (mediaUrl) {
+      URL.revokeObjectURL(mediaUrl);
+      mediaUrl = null;
+    }
+  }
+
+  mediaPick.addEventListener("click", () => mediaFile.click());
+
+  mediaFile.addEventListener("change", async () => {
+    const file = mediaFile.files && mediaFile.files[0];
+    mediaFile.value = "";
+    if (!file) return;
+    showMedia(file);
+    try {
+      await mediaStore("readwrite", (store) => store.put(file, MEDIA_TYPE));
+    } catch (_) { /* keep it for this session only */ }
+  });
+
+  mediaClear.addEventListener("click", async () => {
+    clearMedia();
+    try {
+      await mediaStore("readwrite", (store) => store.delete(MEDIA_TYPE));
+    } catch (_) { /* nothing stored */ }
+  });
+
+  (async () => {
+    try {
+      const saved = await mediaStore("readonly", (store) => store.get(MEDIA_TYPE));
+      if (saved) showMedia(saved);
+    } catch (_) { /* no stored media */ }
+  })();
 
   usernameInput.value = localStorage.getItem("logtime.username") || "";
   renderUsernames();
