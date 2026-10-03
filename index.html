@@ -177,6 +177,10 @@
   .media-layer { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
   .media-layer img,
   .media-layer video { width: 100%; height: 100%; object-fit: contain; opacity: .35; }
+
+  body.fullscreen .controls,
+  body.fullscreen .calc,
+  body.fullscreen .media { display: none; }
   .hidden { display: none; }
 
   @media (max-width: 640px) {
@@ -554,6 +558,15 @@
   });
   document.addEventListener("pointerdown", () => { if (!wakeLock) keepAwake(); }, { once: true });
   keepAwake();
+
+  // Hide the on-page controls while the browser reports fullscreen.
+  function syncFullscreen() {
+    const active = !!(document.fullscreenElement || document.webkitFullscreenElement);
+    document.body.classList.toggle("fullscreen", active);
+  }
+  ["fullscreenchange", "webkitfullscreenchange"].forEach((type) =>
+    document.addEventListener(type, syncFullscreen)
+  );
 
   const MEDIA_DB = "logtime-media";
   const MEDIA_TYPE = "display";
