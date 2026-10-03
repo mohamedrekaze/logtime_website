@@ -568,6 +568,27 @@
     document.addEventListener(type, syncFullscreen)
   );
 
+  // Press F outside a text field to toggle fullscreen through the API. Browser
+  // fullscreen (F11, the green button) is never reported to the page, so this
+  // is the only way the controls can reliably hide.
+  document.addEventListener("keydown", (e) => {
+    if ((e.key !== "f" && e.key !== "F") || e.metaKey || e.ctrlKey || e.altKey) return;
+    const tag = (e.target.tagName || "").toLowerCase();
+    if (tag === "input" || tag === "select" || tag === "textarea") return;
+
+    if (document.fullscreenElement || document.webkitFullscreenElement) {
+      const exit = document.exitFullscreen || document.webkitExitFullscreen;
+      if (exit) exit.call(document);
+    } else {
+      const enter = document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen;
+      if (!enter) return;
+      try {
+        const result = enter.call(document.documentElement);
+        if (result && result.catch) result.catch(() => {});
+      } catch (_) { /* blocked or unsupported */ }
+    }
+  });
+
   const MEDIA_DB = "logtime-media";
   const MEDIA_TYPE = "display";
 
