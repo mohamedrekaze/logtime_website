@@ -421,6 +421,19 @@
     return Number.isInteger(n) ? String(n) : n.toFixed(1);
   }
 
+  const API_URL = "https://logtime-med.1337.ma/api/get_log";
+
+  function callApi(payload) {
+    const options = {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    };
+    // The API sends CORS headers, so call it directly; fall back to the
+    // local proxy (server.py) if the direct call is blocked.
+    return fetch(API_URL, options).catch(() => fetch("/api/get_log", options));
+  }
+
   async function calculate() {
     const login = usernameInput.value.trim();
     const start = fromInput.value;
@@ -436,14 +449,10 @@
     calcBtn.textContent = "Calculating...";
 
     try {
-      const res = await fetch("/api/get_log", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          login,
-          startDate: `${start}T00:00:00.000Z`,
-          endDate: `${end}T23:59:59.999Z`
-        })
+      const res = await callApi({
+        login,
+        startDate: `${start}T00:00:00.000Z`,
+        endDate: `${end}T23:59:59.999Z`
       });
 
       let data = null;
