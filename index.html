@@ -658,9 +658,16 @@
   }
 
   calcBtn.addEventListener("click", calculate);
-  usernameInput.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") calculate();
-    else if (e.key === "Escape") usernameInput.blur();
+  usernameInput.addEventListener("keydown", (e) => { if (e.key === "Enter") calculate(); });
+
+  // Escape leaves any focused field the way a click on the page would:
+  // focus is released, the value is kept, dropdowns are dismissed.
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape") return;
+    const el = document.activeElement;
+    if (!el) return;
+    const tag = el.tagName;
+    if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") el.blur();
   });
 
   let wakeLock = null;
